@@ -1,4 +1,4 @@
-# Falling Sand Simulator
+# SandboxSim
 
 This is a simple **Falling Sand Simulator** built using **C++** and **OpenGL**. The simulation allows particles to interact dynamically, creating visually engaging patterns and behaviors.
 
