@@ -1,4 +1,4 @@
-# SandboxSim
+# Falling Sand Simulator
 
 This is a simple **Falling Sand Simulator** built using **C++** and **OpenGL**. The simulation allows particles to interact dynamically, creating visually engaging patterns and behaviors.
 
@@ -84,11 +84,18 @@ This approach ensures efficiency while allowing dynamic and realistic sand behav
 
    Use `./SandboxSim` for a bash environment and `SandboxSim` for the Windows command line.
 
+## Controls
+
+- **Add Sand:** Left Mouse Button
+- **Remove Sand:** Right Mouse Button
+- **Exit:** Escape Key
+
 ## Future Features
 
 - Support for multiple particle types (e.g., water, walls, fire) with unique behaviors and interactions.
 - A level editor for designing custom setups and scenarios.
 - Enhanced visualization and performance improvements.
+- A graphical user interface (GUI) for intuitive control and interaction.
 
 ## Contributing
 
