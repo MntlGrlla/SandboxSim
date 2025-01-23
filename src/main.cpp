@@ -120,8 +120,6 @@ private:
 
 	void createGrid()
 	{
-		srand(61);
-
 		cellHeight = screenHeight / static_cast<float>(rows);
 		cellWidth = screenWidth / static_cast<float>(columns);
 		
@@ -184,16 +182,6 @@ private:
 		glBindVertexArray(0);
 	}
 
-	void handleInput(GLFWwindow* window)
-	{
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS)
-		{
-			double x, y;
-			glfwGetCursorPos(window, &x, &y);
-			int index = locateSandIndex(x, y);
-			std::cout << "Clicked on index: " << index << '\n';
-		}
-	}
 
 	int locateSandIndex(Square* s)
 	{
@@ -253,6 +241,7 @@ private:
 							changes[downRight] = 1;
 						}
 					}
+					else s->stuck = true;
 				}
 			}
 		}
@@ -281,6 +270,7 @@ private:
 			if (action == GLFW_PRESS)
 			{
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_CAPTURED);
 				grid->mb1 = true;
 				double x, y;
 				glfwGetCursorPos(window, &x, &y);
@@ -320,11 +310,16 @@ private:
 		Grid* grid = static_cast<Grid*>(glfwGetWindowUserPointer(window));
 		double x = xpos;
 		double y = ypos;
+		
+		// reset cursor position if it goes off screen on the y axis
 		if (ypos > SCREEN_HEIGHT || ypos < 0)
 		{
 			glfwSetCursorPos(window, x, SCREEN_HEIGHT / 2.f);
 			y = SCREEN_HEIGHT / 2.f;
 		}
+
+		// if mb pressed, find idx of sand and check it's within grid
+		// handles mouse drag
 		if (grid->mb1 || grid->mb2)
 		{
 			int idx = grid->locateSandIndex(x, y);
@@ -342,7 +337,7 @@ private:
 				{
 					if (idx != grid->lastIndex)
 					{
-						grid->squares[idx]->state = -1;
+						grid->squares[idx]->state = 0;
 						grid->lastIndex = idx;
 					}
 				}
