@@ -30,6 +30,7 @@ struct Square
 {
 	glm::vec2 position;
 	glm::vec2 scale;
+	glm::vec3 color;
 	int state;
 	bool stuck = false;
 };
@@ -61,7 +62,8 @@ public:
 	{
 		for (auto s : squares)
 		{
-			delete s;
+			if (s != nullptr)
+				delete s;
 		}
 	}
 
@@ -72,10 +74,10 @@ public:
 		int idx = 0;
 		for (auto s : squares)
 		{
-			if (s->state > 0)
+			if (s != nullptr) // if there is a square at s
 			{
 				shader.SetMatrix4("model", modelMatrices[idx], GL_FALSE, false);
-				shader.SetVector3f("color", glm::vec3(sin(glfwGetTime())), true);				
+				shader.SetVector3f("color", s->color, true);				
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 				idx++;
 			}
@@ -124,38 +126,15 @@ private:
 		cellHeight = screenHeight / static_cast<float>(rows);
 		cellWidth = screenWidth / static_cast<float>(columns);
 		
-
 		std::cout << "Grid: " << rows << "x" << columns << '\n';
 		std::cout << "RowHeight = " << cellHeight << ", ColWidth = " << cellWidth << '\n';
 
-		int vertexCounter = 1;
-
-		for (int i = 0; i < rows; i++)
-		{
-			for (int j = 0; j < columns; j++)
-			{
-				// generating positions from column width and row height
-				float x = j * cellWidth;
-				float y = i * cellHeight;
-
-				// creating box that fits into the grid location
-				Square* s = new Square();
-				s->position = glm::vec2(x, y);
-				s->scale = glm::vec2(cellWidth, cellHeight);
-				s->state = 0; // do not draw by default
-				squares.push_back(s);
-
-				// generating model matrix for the box to draw later
-				glm::mat4 model = glm::mat4(1.0f);
-				model = glm::translate(model, glm::vec3(s->position, 0.f));
-				model = glm::scale(model, glm::vec3(s->scale, 0.f));
-				modelMatrices.push_back(model);
-
-				// std::cout << "Vertex " << vertexCounter << ": (" << x << ", " << y << ")\n";
-				vertexCounter++;
-			}
+		for (int i = 0; i < rows * columns; i++) 
+		{ 
+			squares.push_back(nullptr); 
+			modelMatrices.push_back(glm::mat4(1.f));
 		}
-
+		int vertexCounter = 1;
 	}
 
 	void genBuffers()
@@ -183,6 +162,36 @@ private:
 		glBindVertexArray(0);
 	}
 
+	glm::vec3 getColorFromTime()
+	{
+		float time = glfwGetTime();
+		int speedFactor = 2;
+		float phase = fmod(time/speedFactor, 3.0f);
+		glm::vec3 color = glm::vec3(0.f);
+
+		if (phase < 1.0f) // Phase 1: Red -> Green
+		{
+			color.r = 1.0f - phase;
+			color.g = phase;
+			color.b = 0.f;
+		}
+		else if (phase < 2.0f) // Phase 2: Green -> Blue
+		{
+			phase -= 1.f; // set phase to max of 1
+			color.r = 0.f;
+			color.g = 1.0f - phase;
+			color.b = phase;
+		}
+		else if (phase < 3.0f) // Phase 3: Blue -> Red
+		{
+			phase -= 2.0f; // set phase to max of 1
+			color.r = phase;
+			color.g = 0.f;
+			color.b = 1.0 - phase;
+		}
+
+		return color;
+	}
 
 	int locateGridIndex(Square* s)
 	{
@@ -198,13 +207,24 @@ private:
 		return indexY * columns + indexX;
 	}
 
+	glm::vec2 locateGridPosition(int idx)
+	{
+		int r = idx / columns; // int division (floors)
+		int c = idx % columns;
+
+		float posX = c * cellWidth;
+		float posY = r * cellHeight;
+		return glm::vec2(posX, posY);
+	}
+
 	void moveSand()
 	{
-		std::map<int, int> changes; // list of indices and states
+		std::map<int, Square*> changes; // list of indices and squares
 		// find the necessary changes and store them 
+
 		for (auto s : squares)
 		{
-			if (s->state > 0)
+			if (s != nullptr)
 			{
 				int idx = locateGridIndex(s);
 				if (idx >= columns * rows - columns)
@@ -217,29 +237,30 @@ private:
 					int downLeft = idx + columns - 1;
 					int downRight = idx + columns + 1;
 					if (downRight > rows * columns - 1) continue;
-					if (squares[directlyUnder]->state == 0)
+					if (squares[directlyUnder] == nullptr)
 					{
-						changes[idx] = 0;
-						changes[directlyUnder] = 1;
+						changes[idx] = nullptr;
+						changes[directlyUnder] = s;
 					}
-					else if (squares[downLeft]->state == 0 && squares[downRight]->state == 0)
+					else if (squares[downLeft] == nullptr && squares[downRight] == nullptr)
 					{
 						int possible[2] = { downLeft, downRight };
 						int choice = rand() % 2;
-						changes[idx] = 0;
-						changes[possible[choice]] = 1;
+
+						changes[idx] = nullptr;
+						changes[possible[choice]] = s;
 					}
 					else if (downLeft < rows * columns || downRight < rows * columns)
 					{
-						if (squares[downLeft]->state == 0)
+						if (squares[downLeft] == nullptr)
 						{
-							changes[idx] = 0;
-							changes[downLeft] = 1;
+							changes[idx] = nullptr;
+							changes[downLeft] = s;
 						}
-						else if (squares[downRight]->state == 0)
+						else if (squares[downRight] == nullptr)
 						{
-							changes[idx] = 0;
-							changes[downRight] = 1;
+							changes[idx] = nullptr;
+							changes[downRight] = s;
 						}
 					}
 					else s->stuck = true;
@@ -250,7 +271,19 @@ private:
 		// apply the changes
 		for (auto& kv : changes)
 		{
-			squares[kv.first]->state = kv.second;
+			if (changes[kv.first] == nullptr)
+			{
+				squares[kv.first] = kv.second;
+				modelMatrices[kv.first] = glm::mat4(1.f);	
+			}
+			else
+			{
+				squares[kv.first] = kv.second;
+				squares[kv.first]->position = locateGridPosition(kv.first);
+				modelMatrices[kv.first] = glm::mat4(1.0f);
+				modelMatrices[kv.first] = glm::translate(modelMatrices[kv.first], glm::vec3(squares[kv.first]->position, 0.f));
+				modelMatrices[kv.first] = glm::scale(modelMatrices[kv.first], glm::vec3(squares[kv.first]->scale, 0.f));
+			}
 		}
 	}
 
@@ -258,7 +291,8 @@ private:
 	{
 		for (auto& s : squares)
 		{
-			s->stuck = false;
+			if (s != nullptr)
+				s->stuck = false;
 		}
 	}
 
@@ -270,14 +304,26 @@ private:
 		{
 			if (action == GLFW_PRESS)
 			{
-				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_CAPTURED);
 				grid->mb1 = true;
 				double x, y;
 				glfwGetCursorPos(window, &x, &y);
 				int idx = grid->locateGridIndex(x, y);
-				grid->squares[idx]->state = 1;
+				glm::vec2 posFromIdx = grid->locateGridPosition(idx);
+
+				if (grid->squares[idx] == nullptr)
+				{
+					Square* s = new Square();
+					s->position = posFromIdx;
+					s->scale = glm::vec2(grid->cellWidth, grid->cellHeight);
+					s->color = grid->getColorFromTime();
+					grid->squares[idx] = s;
+					grid->modelMatrices[idx] = glm::mat4(1.0f);
+					grid->modelMatrices[idx] = glm::translate(grid->modelMatrices[idx], glm::vec3(s->position, 0.f));
+					grid->modelMatrices[idx] = glm::scale(grid->modelMatrices[idx], glm::vec3(s->scale, 0.f));
+				}
 			}
+			
 			if (action == GLFW_RELEASE)
 			{
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -294,7 +340,11 @@ private:
 				double x, y;
 				glfwGetCursorPos(window, &x, &y);
 				int idx = grid->locateGridIndex(x, y);
-				grid->squares[idx]->state = 0;
+				if (grid->squares[idx] != nullptr) // only delete the square if there is one there. if not, don't try to delete it dummy
+				{
+					delete grid->squares[idx];
+					grid->squares[idx] = nullptr;
+				}
 			}
 			if (action == GLFW_RELEASE)
 			{
@@ -328,17 +378,27 @@ private:
 			{
 				if (grid->mb1)
 				{
-					if (idx != grid->lastIndex);
+					if (idx != grid->lastIndex && grid->squares[idx] == nullptr)
 					{
-						grid->squares[idx]->state = 1;
+						Square* s = new Square();
+						s->position = grid->locateGridPosition(idx);
+						s->scale = glm::vec2(grid->cellWidth, grid->cellHeight);
+						s->color = grid->getColorFromTime();
+
+						grid->modelMatrices[idx] = glm::mat4(1.0f);
+						grid->modelMatrices[idx] = glm::translate(grid->modelMatrices[idx], glm::vec3(s->position, 0.f));
+						grid->modelMatrices[idx] = glm::scale(grid->modelMatrices[idx], glm::vec3(s->scale, 0.f));
+						
+						grid->squares[idx] = s;
 						grid->lastIndex = idx;
 					}
 				}
 				if (grid->mb2)
 				{
-					if (idx != grid->lastIndex)
+					if (idx != grid->lastIndex && grid->squares[idx] != nullptr)
 					{
-						grid->squares[idx]->state = 0;
+						delete grid->squares[idx];
+						grid->squares[idx] = nullptr;
 						grid->lastIndex = idx;
 					}
 				}
@@ -384,7 +444,7 @@ int main()
 	shader.Use();
 	shader.SetMatrix4("projection", projection, GL_FALSE, false);
 
-	int ratioMultiplier = 32; 
+	int ratioMultiplier = 32; // Use a power of 2 for perfect square cells
 
 	Grid grid = Grid(window, 9 * ratioMultiplier, 16 * ratioMultiplier, SCREEN_WIDTH, SCREEN_HEIGHT, shader);
 	
