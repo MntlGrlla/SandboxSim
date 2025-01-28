@@ -165,7 +165,7 @@ private:
 	glm::vec3 getColorFromTime()
 	{
 		float time = glfwGetTime();
-		int speedFactor = 2;
+		int speedFactor = 3;
 		float phase = fmod(time/speedFactor, 3.0f);
 		glm::vec3 color = glm::vec3(0.f);
 
@@ -191,6 +191,21 @@ private:
 		}
 
 		return color;
+	}
+
+	void handleInput()
+	{
+		if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+		{
+			for (auto& s : squares)
+			{
+				if (s != nullptr)
+				{
+					delete s;
+					s = nullptr;
+				}
+			}
+		}
 	}
 
 	int locateGridIndex(Square* s)
