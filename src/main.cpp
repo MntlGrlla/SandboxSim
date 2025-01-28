@@ -99,6 +99,7 @@ public:
 
 	void Update(float dt)
 	{
+		handleInput();
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) start = true;
 		if (start && !mb2)
 		{
