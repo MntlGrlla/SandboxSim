@@ -75,6 +75,7 @@ public:
 			if (s->state > 0)
 			{
 				shader.SetMatrix4("model", modelMatrices[idx], GL_FALSE, false);
+				shader.SetVector3f("color", glm::vec3(sin(glfwGetTime())), true);				
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 				idx++;
 			}
@@ -97,7 +98,7 @@ public:
 	void Update(float dt)
 	{
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) start = true;
-		if (start)
+		if (start && !mb2)
 		{
 			updateAccum += dt;
 			if (updateAccum >= 0.0f)
@@ -141,7 +142,7 @@ private:
 				Square* s = new Square();
 				s->position = glm::vec2(x, y);
 				s->scale = glm::vec2(cellWidth, cellHeight);
-				s->state = (vertexCounter == rows * columns / 2) ? 1 : 0; // do not draw by default
+				s->state = 0; // do not draw by default
 				squares.push_back(s);
 
 				// generating model matrix for the box to draw later
@@ -183,14 +184,14 @@ private:
 	}
 
 
-	int locateSandIndex(Square* s)
+	int locateGridIndex(Square* s)
 	{
 		int x = static_cast<int>(floor(s->position.x / cellWidth));
 		int y = static_cast<int>(float(s->position.y / cellHeight));
 		return y * columns + x;
 	}
 
-	int locateSandIndex(double x, double y)
+	int locateGridIndex(double x, double y)
 	{
 		int indexX = static_cast<int>(floor(x / cellWidth));
 		int indexY = static_cast<int>(float(y / cellHeight));
@@ -205,7 +206,7 @@ private:
 		{
 			if (s->state > 0)
 			{
-				int idx = locateSandIndex(s);
+				int idx = locateGridIndex(s);
 				if (idx >= columns * rows - columns)
 				{
 					continue;
@@ -274,7 +275,7 @@ private:
 				grid->mb1 = true;
 				double x, y;
 				glfwGetCursorPos(window, &x, &y);
-				int idx = grid->locateSandIndex(x, y);
+				int idx = grid->locateGridIndex(x, y);
 				grid->squares[idx]->state = 1;
 			}
 			if (action == GLFW_RELEASE)
@@ -292,7 +293,7 @@ private:
 				grid->mb2 = true;
 				double x, y;
 				glfwGetCursorPos(window, &x, &y);
-				int idx = grid->locateSandIndex(x, y);
+				int idx = grid->locateGridIndex(x, y);
 				grid->squares[idx]->state = 0;
 			}
 			if (action == GLFW_RELEASE)
@@ -322,7 +323,7 @@ private:
 		// handles mouse drag
 		if (grid->mb1 || grid->mb2)
 		{
-			int idx = grid->locateSandIndex(x, y);
+			int idx = grid->locateGridIndex(x, y);
 			if (idx < grid->columns * grid->rows && idx > -1)
 			{
 				if (grid->mb1)

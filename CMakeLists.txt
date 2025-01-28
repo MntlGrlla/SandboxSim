@@ -43,5 +43,8 @@ target_include_directories(SandboxSim PRIVATE
 # copy shader files to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/shaders DESTINATION ${CMAKE_BINARY_DIR})
 
+# set shader dir macro
+target_compile_definitions(SandboxSim PRIVATE SHADER_DIR="${CMAKE_BINARY_DIR}/shaders")
+
 # change working directory to cmake source dir (must come after the exectuable is made (add_executable()))
-set_target_properties(SandboxSim PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set_target_properties(SandboxSim PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
