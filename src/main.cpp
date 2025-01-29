@@ -75,7 +75,7 @@ public:
 			if (s->state > 0)
 			{
 				shader.SetMatrix4("model", modelMatrices[idx], GL_FALSE, false);
-				shader.SetVector3f("color", glm::vec3(sin(glfwGetTime())), true);				
+				shader.SetVector3f("color", glm::vec3(0.f), true);				
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 				idx++;
 			}
@@ -392,7 +392,8 @@ int main()
 
 	float accumulator = 0;
 
-	
+	int fpsAccum = 0;
+	int frameCounter = 0;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -401,6 +402,14 @@ int main()
 		prevFrame = currentFrame;
 		accumulator += deltaTime;
 		
+		fpsAccum += deltaTime;
+		frameCounter++;
+		if (fpsAccum >= 5.0f)
+		{
+			std::cout << "Average FPS: " << frameCounter / fpsAccum << '\n';
+			frameCounter = 0;
+			fpsAccum = 0;
+		}
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
