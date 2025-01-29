@@ -43,6 +43,7 @@ public:
 	std::vector<Square*> squares;
 	std::vector<glm::mat4> modelMatrices;
 	float updateAccum = 0;
+	int totalSand = 0;
 
 	bool start = false;
 	// declaring mouse buttons
@@ -110,7 +111,11 @@ public:
 				if (updateAccum >= 0.5f)
 				{
 					resetStuck();
-					updateAccum = 0.f;
+					if (updateAccum >= 1.0f)
+					{
+						std::cout << "Total Sand = " << totalSand << '\n';
+						updateAccum = 0.f;
+					}
 				}
 			}
 		}
@@ -204,8 +209,10 @@ private:
 				{
 					delete s;
 					s = nullptr;
+
 				}
 			}
+			totalSand = 0;
 		}
 	}
 
@@ -334,6 +341,7 @@ private:
 					s->scale = glm::vec2(grid->cellWidth, grid->cellHeight);
 					s->color = grid->getColorFromTime();
 					grid->squares[idx] = s;
+					grid->totalSand += 1;
 					grid->modelMatrices[idx] = glm::mat4(1.0f);
 					grid->modelMatrices[idx] = glm::translate(grid->modelMatrices[idx], glm::vec3(s->position, 0.f));
 					grid->modelMatrices[idx] = glm::scale(grid->modelMatrices[idx], glm::vec3(s->scale, 0.f));
@@ -360,6 +368,7 @@ private:
 				{
 					delete grid->squares[idx];
 					grid->squares[idx] = nullptr;
+					grid->totalSand -= 1;
 				}
 			}
 			if (action == GLFW_RELEASE)
@@ -407,6 +416,7 @@ private:
 						
 						grid->squares[idx] = s;
 						grid->lastIndex = idx;
+						grid->totalSand += 1;
 					}
 				}
 				if (grid->mb2)
@@ -415,6 +425,7 @@ private:
 					{
 						delete grid->squares[idx];
 						grid->squares[idx] = nullptr;
+						grid->totalSand -= 1;
 						grid->lastIndex = idx;
 					}
 				}
@@ -468,7 +479,8 @@ int main()
 
 	float accumulator = 0;
 
-	
+	int frameCounter = 0;
+	float fpsAccum = 0;
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -477,6 +489,14 @@ int main()
 		prevFrame = currentFrame;
 		accumulator += deltaTime;
 		
+		fpsAccum += deltaTime;
+		frameCounter++;
+		if (fpsAccum >= 5.0f)
+		{
+			std::cout << "Avg FPS: " << frameCounter / fpsAccum << '\n';
+			frameCounter = 0;
+			fpsAccum = 0;
+		}
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClearColor(0.4f, 0.4f, 0.4f, 1.0f);
